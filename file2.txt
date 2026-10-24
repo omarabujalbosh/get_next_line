@@ -1,0 +1,3 @@
+Good morning
+C programming
+get_next_line
