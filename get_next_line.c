@@ -10,23 +10,28 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+
 #include "get_next_line.h"
 
-c_list	*ft_lstnew(void *content)
+int	is_new_line(char *buf)
 {
-	t_list	*newl;
+	int	i;
 
-	newl = malloc(sizeof(t_list));
-	if (!newl)
-		return (NULL);
-	newl -> content = content;
-	newl -> next = NULL;
-	return (newl);
+	i = 0;
+	if (!buf)
+		return (0);
+	while (buf[i])
+	{
+		if (buf[i] == '\n')
+			return (1);
+		i++;
+	}
+	return (0);
 }
 
-void	ft_lstadd_back(t_list **lst, t_list *new)
+void	ft_lstadd_back(c_list **lst, c_list *new)
 {
-	t_list	*pre;
+	c_list	*pre;
 
 	if (!lst || !new)
 		return ;
@@ -35,50 +40,164 @@ void	ft_lstadd_back(t_list **lst, t_list *new)
 		*lst = new;
 		return ;
 	}
-	pre = ft_lstlast(*lst);
+	pre = *lst;
+	while (pre->next)
+		pre = pre->next;
 	pre->next = new;
 }
-void	read_buf(int fd, c_list cuntent)
+
+c_list	*ft_lstnew(void *content)
 {
-	int	n;
-	c_list	node;
-	char	*buf;
+	c_list	*newl;
 
-	n = read(fd, buf,  BUFFER_SIZE);
-	if (n > 0)
-		ft_lstadd_back(cuntent, node = ft_lstlast(buf));
-	else if (n == 0)
-		return ;
-	else if (n < 0)
+	newl = malloc(sizeof(c_list));
+	if (!newl)
+		return (NULL);
+	newl -> buf = content;
+	newl -> next = NULL;
+	return (newl);
+}
+char *free_all(c_list **cuntent)
+{
+	c_list	*tmp;
 
+	while (*cuntent)
+	{
+		tmp = (*cuntent)->next;
+		if ((*cuntent)-> buf)
+			free((*cuntent)->buf);
+		free(*cuntent);
+		*cuntent = tmp;
+	}
+	return (NULL);
 }
 
-char	*read_line(f_list current_file)
+int	line_len(c_list **cuntent)
 {
-	char	*line;
-	char	*buf;
+	c_list	*current;
+	int	i;
+	int	j;
 
-	if (!current_file->cuntent)
-		read_buf(fd, cuntent_file->cuntent);
+	i = 0;
+	current = *cuntent;
+	while (current->next)
+	{
+		j = 0;
+		while (current->buf[j++])
+			i++;
+	}
+	j = 0;
+	while(current->buf[j] && current->buf[j] != '\n')
+		i++;
+	if (current->buf[j] == '\n')
+		i++;
+	return (i);
+}
+int	remainder_len(char *buf)
+{
+	int	flag;
+	int	i;
+	int	len;
+
+	if (!buf)
+		return (0);
+	flag = 1;
+	while (buf[i])
+	{
+		if (buf[i] == '\n')
+			flag = 1;
+			
+		if (flag)
+			len++;
+		i++;
+	}
+	return (len);
+}
+char *get_remainder(c_list **cuntent, c_list *current, char **line)
+{
+	char	*new;
+	int	newlen;
+	int	i;
+	int	j;
+
+	i = 0;
+	j = 0;
+	newlen = remainder_len(current->buf);
+	new = malloc(newlen);
+	if (!new)
+	{
+		free(line);
+		return (NULL);
+	}
+	while (current->buf[i] && current->buf[i] != '\n')
+	{
+		*line[i] = current->buf[i];
+		i++;
+	}
+	while (current->buf[i] && newlen--)
+		new[j++] = current->buf[++i];
+	free_all(cuntent);
+	ft_lstadd_back(cuntent, ft_lstnew(new));
+	return (*line);
+}
+
+char	*merge_line(c_list **cuntent)
+{
+	int	len;
+	char	*line;
+	int	i;
+	int	j;
+	c_list	*current;
+
+	current = *cuntent;
+	len = line_len(cuntent);
+	line = malloc(len + 1);
+	if (!line)
+		return (NULL);
+	while (current->next)
+	{
+		j = 0;
+		while (current->buf[j])
+		{
+			line[i] = current->buf[j];
+			i++;
+			j++;
+		}
+	}
+	line  = get_remainder(cuntent, current, &line);
+	line[i] = '\0';
+	return (line);
+}
+
+char	*readline(int fd, c_list **cuntent)
+{
+	char	*buf;
+	size_t	n;
+	c_list	*current;
+
+	current = *cuntent;
+	if ((*cuntent)->next)
+	while (current->next)
+	  current = current->next;
+	while (!is_new_line(cuntent->buf))
+	{
+	n = read(fd, buf, BUFFER_SIZE);
+	if (n < 0)
+		return (free_all(cuntent));
+	else if (n == 0 || n < BUFFER_SIZE)
+		return (merge_line(cuntent));
+	else
+		ft_lstadd_back(cuntent, ft_lstnew(buf));
+	current = current->next;
+	}
+	return (merge_line(cuntent));
 }
 
 char	*get_next_line(int fd)
 {
-	static f_list	*list;
-	f_list	*current;
-	char	*line;
-
-	current = list;
-	if (fd < 0)
+	static *c_list	cuntent;
+	
+	if (fd < 0 && read(fd, NULL, 0) < 0)
 		return (NULL);
-	if (!list)
-		ft_lstadd_back(&list, add_file(fd));
-	while(current->next)
-	{
-		if (current->fd == fd)
-			line = read_line(current);
-		current = current->next;
-
-	}
-
+	return(readline(fd, cuntent));
 }
