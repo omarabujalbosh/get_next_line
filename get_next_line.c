@@ -85,6 +85,7 @@ int	line_len(c_list **cuntent)
 		j = 0;
 		while (current->buf[j++])
 			i++;
+		current = current->next;
 	}
 	j = 0;
 	while(current->buf[j] && current->buf[j] != '\n')
@@ -99,6 +100,8 @@ int	remainder_len(char *buf)
 	int	i;
 	int	len;
 
+	i = 0;
+	len = 0;
 	if (!buf)
 		return (0);
 	flag = 1;
@@ -163,6 +166,7 @@ char	*merge_line(c_list **cuntent)
 			i++;
 			j++;
 		}
+		current = current->next;
 	}
 	line  = get_remainder(cuntent, current, &line);
 	line[i] = '\0';
@@ -176,10 +180,10 @@ char	*readline(int fd, c_list **cuntent)
 	c_list	*current;
 
 	current = *cuntent;
-	if ((*cuntent)->next)
+	if (*cuntent && (*cuntent)->next)
 	while (current->next)
 	  current = current->next;
-	while (!is_new_line(cuntent->buf))
+	while (!is_new_line((*cuntent)->buf))
 	{
 	n = read(fd, buf, BUFFER_SIZE);
 	if (n < 0)
@@ -195,9 +199,9 @@ char	*readline(int fd, c_list **cuntent)
 
 char	*get_next_line(int fd)
 {
-	static *c_list	cuntent;
+	static c_list	*cuntent;
 	
 	if (fd < 0 && read(fd, NULL, 0) < 0)
 		return (NULL);
-	return(readline(fd, cuntent));
+	return(readline(fd, &cuntent));
 }
